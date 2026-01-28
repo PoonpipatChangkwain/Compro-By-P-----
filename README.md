@@ -174,13 +174,20 @@ npm run dev
 
 ## 🧪 Test Cases
 
-Backend tests 3 cases automatically:
+Backend tests 10 cases automatically:
 
-| # | Input | Expected Output |
-|---|-------|-----------------|
-| 1 | `xxx\noox\noox` | `X is a winner` |
-| 2 | `oox\noxo\nxxx` | `X is a winner` |
-| 3 | `oxo\nxox\nxox` | `This duel is a draw` |
+| # | Input | Expected Output | Description |
+|---|-------|-----------------|-------------|
+| 1 | `xxx\noox\noox` | `X is a winner` | X wins (horizontal) |
+| 2 | `oox\noxo\nxxx` | `X is a winner` | X wins (horizontal) |
+| 3 | `oxo\nxox\nxox` | `This duel is a draw` | Board full, no winner |
+| 4 | `OOO\nxox\nxxo` | `O is a winner` | O wins (horizontal) + case insensitive |
+| 5 | `oXo\nXXo\nXoX` | `This duel is a draw` | Mixed case, draw |
+| 6 | `Ait\n03a\nxOx` | `Error please try again` | Invalid characters |
+| 7 | `OOO\nEzz\nlol` | `Error please try again` | Invalid characters |
+| 8 | `U can do it na i trust in you fighto!` | `Error please try again` | Invalid characters (too long) |
+| 9 | (empty) | `Error please try again` | Empty input |
+| 10 | `OOO` | `Error please try again` | Incomplete (not 3x3) |
 
 ---
 

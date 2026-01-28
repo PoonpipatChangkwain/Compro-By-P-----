@@ -8,7 +8,14 @@ CORS(app)
 TESTS = [
     ["xxx\noox\noox", "X is a winner"],
     ["oox\noxo\nxxx", "X is a winner"],
-    ["oxo\nxox\nxox", "This duel is a draw"]
+    ["oxo\nxox\nxox", "This duel is a draw"],
+    ["OOO\nxox\nxxo", "O is a winner"],
+    ["oXo\nXXo\nXoX", "This duel is a draw"],
+    ["Ait\n03a\nxOx", "Error please try again"],
+    ["OOO\nEzz\nlol", "Error please try again"],
+    ["U can do it na i trust in you fighto!", "Error please try again"],
+    ["", "Error please try again"],
+    ["OOO", "Error please try again"],
 ]
 
 # Solution code
