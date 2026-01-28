@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>OX Game Checker — Practice</title>
+  <style>
+    body{font-family:Segoe UI,Roboto,Arial;margin:20px;background:#f7f9fc;color:#111}
+    h1{font-size:20px}
+    .wrap{display:grid;grid-template-columns:1fr 360px;gap:16px}
+    textarea{width:100%;height:360px;font-family:Consolas,monospace;font-size:14px;padding:12px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box}
+    .panel{background:#fff;padding:12px;border:1px solid #e3e7ee;border-radius:8px}
+    button{background:#0066ff;color:#fff;border:none;padding:10px 14px;border-radius:6px;cursor:pointer}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    .test{padding:8px;border-radius:6px;margin-bottom:8px}
+    .pass{background:#e6fff0;border:1px solid #9fe6b8}
+    .fail{background:#fff0f0;border:1px solid #f1a1a1}
+    pre{white-space:pre-wrap;margin:0}
+    .muted{color:#666;font-size:13px}
+  </style>
+</head>
+<body>
+  <h1>OX Game Winner Checker — ฝึกเขียนโค้ด (Pyodide)</h1>
+  <p class="muted">แก้ไขฟังก์ชัน `check_winner(input_str)` แล้วกด <strong>Run tests</strong> เพื่อเช็คกับตัวอย่าง</p>
+
+  <div class="wrap">
+    <div>
+      <div class="panel">
+        <label class="muted">Code editor</label>
+        <textarea id="editor">def check_winner(board_str):
+    """รับสตริง 3x3 (ใช้ \n เป็น new line) และคืนค่าสตริงตามโจทย์"""
+    # ตัวอย่างเริ่มต้น: เปลี่ยนโค้ดข้างล่างนี้เป็นคำตอบของคุณ
+    s = board_str.strip().lower()
+    if any(ch not in ('x','o','\n') for ch in s):
+        return "Error please try again"
+    rows = [list(r) for r in s.splitlines() if r]
+    if len(rows)!=3 or any(len(r)!=3 for r in rows):
+        return "Error please try again"
+    lines = []
+    lines.extend([''.join(r) for r in rows])
+    for c in range(3):
+        lines.append(''.join(rows[r][c] for r in range(3)))
+    lines.append(''.join(rows[i][i] for i in range(3)))
+    lines.append(''.join(rows[i][2-i] for i in range(3)))
+    if any(line=='ooo' for line in lines):
+        return "O is a winner"
+    if any(line=='xxx' for line in lines):
+        return "X is a winner"
+    return "This duel is a draw"
+</textarea>
+        <div style="margin-top:8px">
+          <button id="run" disabled>Load Pyodide...</button>
+          <button id="reset" style="margin-left:8px">Reset</button>
+          <div style="margin-top:8px">
+            <label class="muted"><input type="checkbox" id="serverMode" checked> Use backend server</label>
+            <div style="margin-top:6px">
+              <input id="serverUrl" style="width:100%" value="http://localhost:5000/api/run">
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="muted" style="margin-top:8px">หมายเหตุ: โค้ดรันภายในเบราว์เซอร์โดยใช้ Pyodide (Python)</p>
+    </div>
+
+    <div>
+      <div class="panel">
+        <label class="muted">Tests & Results</label>
+        <div id="results" style="margin-top:8px"></div>
+      </div>
+      <div class="panel" style="margin-top:12px">
+        <label class="muted">Test cases</label>
+        <pre>1) xxx\noox\noox  -> X is a winner
+2) oox\noxo\nxxx  -> X is a winner
+3) oxo\nxox\nxox  -> This duel is a draw</pre>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+  <script>
+    let pyodide = null;
+    async function init(){
+      pyodide = await loadPyodide();
+      document.getElementById('run').textContent = 'Run tests';
+      document.getElementById('run').disabled = false;
+    }
+    init();
+
+    function renderResults(obj){
+      const root = document.getElementById('results');
+      root.innerHTML='';
+      if(!obj) return;
+      if(obj.setup_error){
+        const pre = document.createElement('pre'); pre.textContent = obj.setup_error; root.appendChild(pre); return;
+      }
+      obj.forEach(t => {
+        const div = document.createElement('div');
+        div.className = 'test ' + (t.passed ? 'pass' : 'fail');
+        const inp = document.createElement('div'); inp.innerHTML = '<strong>Input:</strong> <pre>'+t.input+'</pre>';
+        const exp = document.createElement('div'); exp.innerHTML = '<strong>Expected:</strong> '+t.expected;
+        const act = document.createElement('div'); act.innerHTML = '<strong>Actual:</strong> '+(t.actual===null?'<em>error</em>':t.actual);
+        div.appendChild(inp); div.appendChild(exp); div.appendChild(act);
+        if(t.error){ const e = document.createElement('pre'); e.textContent = t.error; div.appendChild(e); }
+        root.appendChild(div);
+      });
+    }
+
+    async function runServer(code, url){
+      try{
+        const resp = await fetch(url, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({code})
+        });
+        const json = await resp.json();
+        return json;
+      }catch(err){
+        return [{input:'',expected:'',actual:null,passed:false,error:err.toString()}];
+      }
+    }
+
+    async function runLocal(code){
+      const tests = [
+        ["xxx\noox\noox","X is a winner"],
+        ["oox\noxo\nxxx","X is a winner"],
+        ["oxo\nxox\nxox","This duel is a draw"]
+      ];
+      const pyRunner = `import json,traceback,sys\n`+
+        `tests = ${JSON.stringify(tests)}\n`+
+        `result = []\n`+
+        `try:\n`+
+        `${code.split('\n').map(l=>'    '+l).join('\n')}\n`+
+        `    if 'check_winner' not in globals() and 'check_winner' not in locals():\n`+
+        `        raise NameError('check_winner not defined')\n`+
+        `    func = check_winner\n`+
+        `    for inp, expected in tests:\n`+
+        `        try:\n`+
+        `            out = func(inp)\n`+
+        `            result.append({'input':inp,'expected':expected,'actual':out,'passed': out==expected})\n`+
+        `        except Exception as e:\n`+
+        `            tb = traceback.format_exc()\n`+
+        `            result.append({'input':inp,'expected':expected,'actual':None,'passed':False,'error':tb})\n`+
+        `except Exception as e:\n`+
+        `    tb = traceback.format_exc()\n`+
+        `    result = {'setup_error':tb}\n`+
+        `print(json.dumps(result))`;
+      try{
+        const out = await pyodide.runPythonAsync(pyRunner);
+        return JSON.parse(out);
+      }catch(err){
+        return [{input:'',expected:'',actual:null,passed:false,error:err.toString()}];
+      }
+    }
+
+    document.getElementById('run').addEventListener('click', async ()=>{
+      document.getElementById('run').disabled = true; document.getElementById('run').textContent='Running...';
+      const userCode = document.getElementById('editor').value;
+      const useServer = document.getElementById('serverMode').checked;
+      let results;
+      if(useServer){
+        const url = document.getElementById('serverUrl').value || '/api/run';
+        results = await runServer(userCode, url);
+      }else{
+        results = await runLocal(userCode);
+      }
+      renderResults(results);
+      document.getElementById('run').disabled = false; document.getElementById('run').textContent='Run tests';
+    });
+
+    document.getElementById('reset').addEventListener('click', ()=>{
+      location.reload();
+    });
+  </script>
+</body>
+</html>
